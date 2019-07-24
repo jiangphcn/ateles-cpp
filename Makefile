@@ -17,13 +17,13 @@ TEST_FILES = $(filter-out $(TEST_EXCLUDES), $(wildcard tests/*.cc), $(SRC_FILES)
 build:
 	mkdir -p build
 	$(CXX) -std=c++14 -stdlib=libc++ -o build/jsworker \
-			-I /usr/local/include/mozjs-52/ \
-			-L /usr/local/lib/ \
+		-I /usr/local/include/mozjs-52/ \
+		-L /usr/local/lib/ \
     	-I $(ROOT)/tests/include/ \
     	-I $(ROOT)/tests/include/ \
     	-I ${ROOT}/src \
-			-lmozjs-52 -lz \
-    	$(SRC_FILES) \
+		-lmozjs-52 -lz \
+    	$(SRC_FILES)
 
 test: test_compile tests/runner.o
 	tests/runner
