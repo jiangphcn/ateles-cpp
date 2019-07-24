@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package ateles;
+
+service Ateles {
+  rpc CreateMapContext(MapContextInfo) returns (MapContext) {}
+  rpc MapDocs(stream Doc) returns (stream MapResult) {}
+}
+
+
+message MapContextInfo {
+    string name = 1;
+    string lib = 2;
+    repeated string map_funs = 3;
+}
+
+
+message MapContext {
+    string ref = 1;
+}
+
+
+message Doc {
+    string ref = 1;
+    string body = 2;
+}
+
+
+message MapResult {
+    repeated string results = 1;
+}

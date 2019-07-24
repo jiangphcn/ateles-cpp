@@ -2,13 +2,27 @@
 
 The new javascript worker runtime for CouchDB on FDB.
 
-## Clang
+## Building
 
-  Clang needs to be installed for this to compile
+Once all dependencies are installed (see below) building ateles is
+as simple as:
+
+```bash
+  make
+```
+
+## Dependencies
+
+### macOS
+
+```bash
+  brew install cmake
+  brew install grpc
+```
 
 ## Installing spidermonkey
 
-### Macosx
+### macOS
 
 ```bash
   brew install autoconf@2.13

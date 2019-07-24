@@ -1,16 +1,18 @@
-.PHONY: format build test
+.PHONY: format init build test clean
 
-all: format build
+all: init build
 
 
 format:
 	clang-format -style=file -i src/*
 
 
+init:
+	test -d build || (mkdir build && cmake -S . -B build)
+
+
 build:
-	mkdir -p build
-	cmake -S . -B build
-	make VERBOSE=1 -C build
+	make -C build
 
 
 clean:
