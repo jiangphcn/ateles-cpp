@@ -4,12 +4,12 @@ var results = [];
 
 
 function emit(key, value) {
-  results.append([key, value]);
+  results.push([key, value]);
 }
 
 
 function add_fun(source) {
-  map_funs.push_back(eval(source));
+  map_funs.push(eval(source));
 }
 
 
@@ -18,7 +18,7 @@ function map_doc(doc) {
   for(var i = 0; i < map_funs.length; i++) {
     results = [];
     map_funs[i](doc)
-    output.append(results)
+    output.push(results)
   }
   return JSON.stringify(output);
 }
