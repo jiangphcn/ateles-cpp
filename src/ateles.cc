@@ -14,6 +14,11 @@
 #include <cstdlib>
 #include <iostream>
 
+#include "ateles_map.h"
+#include "escodegen.h"
+#include "esprima.h"
+#include "rewrite_anon_fun.h"
+
 static JSClassOps global_ops = {nullptr,
     nullptr,
     nullptr,
@@ -30,35 +35,79 @@ static JSClassOps global_ops = {nullptr,
 /* The class of the global object. */
 static JSClass global_class = {"global", JSCLASS_GLOBAL_FLAGS, &global_ops};
 
+bool
+load_script(JSContext* ctx, const char* name, unsigned char* source, size_t len)
+{
+    JS::RootedValue rval(ctx);
+    JS::CompileOptions opts(ctx);
+    opts.setFileAndLine(name, 1);
+    return JS::Evaluate(ctx, opts, (char*) source, len, &rval);
+}
+
 namespace ateles
 {
-JSMapContext::JSMapContext(std::string lib)
-{
-    this->_lib = lib;
+JSMapContext::JSMapContext(std::string lib) : _lib(lib) {}
 
+bool
+JSMapContext::init()
+{
     this->_ctx = JS_NewContext(8L * 1024 * 1024);
     if(!this->_ctx) {
-        return;
+        return false;
     }
 
     if(!JS::InitSelfHostedCode(this->_ctx)) {
-        return;
+        return false;
     }
 
     JSAutoRequest ar(this->_ctx);
 
     JS::CompartmentOptions options;
-    this->_global_obj = new JS::RootedObject(this->_ctx,
-        JS_NewGlobalObject(this->_ctx, &global_class, nullptr, JS::FireOnNewGlobalHook, options));
+    this->_conv_global = new JS::RootedObject(this->_ctx,
+        JS_NewGlobalObject(this->_ctx,
+            &global_class,
+            nullptr,
+            JS::FireOnNewGlobalHook,
+            options));
 
-    if(!this->_global_obj) {
-        return;
+    if(!this->_conv_global) {
+        return false;
+    }
+
+    this->_map_global = new JS::RootedObject(this->_ctx,
+        JS_NewGlobalObject(this->_ctx,
+            &global_class,
+            nullptr,
+            JS::FireOnNewGlobalHook,
+            options));
+
+    if(!this->_map_global) {
+        return false;
     }
 
     {
-        JSAutoCompartment ac(this->_ctx, *this->_global_obj);
-        JS_InitStandardClasses(this->_ctx, *this->_global_obj);
+        // Scope to the conv compartment
+        JSAutoCompartment ac(this->_ctx, *this->_conv_global);
+        JS_InitStandardClasses(this->_ctx, *this->_conv_global);
+
+        load_script(this->_ctx, "escodegen.js", escodegen_data, escodegen_len);
+        load_script(this->_ctx, "esprima.js", esprima_data, esprima_len);
+        load_script(this->_ctx,
+            "rewrite_anon_fun.js",
+            rewrite_anon_fun_data,
+            rewrite_anon_fun_len);
     }
+
+    {
+        // Scope to the map compartment
+        JSAutoCompartment ac(this->_ctx, *this->_map_global);
+        JS_InitStandardClasses(this->_ctx, *this->_map_global);
+
+        load_script(
+            this->_ctx, "ateles_map.js", ateles_map_data, ateles_map_len);
+    }
+
+    return true;
 }
 
 bool
@@ -72,5 +121,4 @@ JSMapContext::map_doc(std::string doc)
 {
     return std::vector<std::string>();
 }
-}
-;
+};  // namespace ateles

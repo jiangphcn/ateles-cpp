@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-#include "jsapi.h"
 #include "js/Initialization.h"
+#include "jsapi.h"
 
 namespace ateles
 {
@@ -13,7 +13,16 @@ class JSMapContext {
   public:
     typedef std::shared_ptr<JSMapContext> Ptr;
 
-    static Ptr create(std::string lib) { return Ptr(new JSMapContext(lib)); }
+    static Ptr create(std::string lib)
+    {
+        Ptr ret(new JSMapContext(lib));
+
+        if(ret->init()) {
+            return ret;
+        }
+
+        return Ptr();
+    }
 
     bool add_fun(std::string source);
     std::vector<std::string> map_doc(std::string doc);
@@ -21,8 +30,11 @@ class JSMapContext {
   private:
     explicit JSMapContext(std::string lib);
 
+    bool init();
+
     JSContext* _ctx;
-    JS::RootedObject* _global_obj;
+    JS::RootedObject* _conv_global;
+    JS::RootedObject* _map_global;
     std::string _lib;
 };
 

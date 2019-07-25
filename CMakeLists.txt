@@ -10,6 +10,7 @@ pkg_check_modules(GRPC REQUIRED grpc++)
 
 find_program(PROTOC protoc)
 find_program(GRPC_PLUGIN grpc_cpp_plugin)
+find_program(PYTHON python)
 
 set(PROTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/proto)
 set(ATELES_PB_SRC ${PROTO_DIR}/ateles.proto)
@@ -36,8 +37,57 @@ add_custom_command(
 )
 
 
+# Generate our JS data files
+set(MKHEADER ${CMAKE_CURRENT_SOURCE_DIR}/tools/mkheader.py)
+set(ESCODEGEN_SRC ${CMAKE_CURRENT_SOURCE_DIR}/js/escodegen.js)
+set(ESCODEGEN_HDR ${CMAKE_CURRENT_BINARY_DIR}/escodegen.h)
+set(ESPRIMA_SRC ${CMAKE_CURRENT_SOURCE_DIR}/js/esprima.js)
+set(ESPRIMA_HDR ${CMAKE_CURRENT_BINARY_DIR}/esprima.h)
+set(REWRITE_ANON_FUN_SRC ${CMAKE_CURRENT_SOURCE_DIR}/js/rewrite_anon_fun.js)
+set(REWRITE_ANON_FUN_HDR ${CMAKE_CURRENT_BINARY_DIR}/rewrite_anon_fun.h)
+set(ATELES_MAP_SRC ${CMAKE_CURRENT_SOURCE_DIR}/js/ateles_map.js)
+set(ATELES_MAP_HDR ${CMAKE_CURRENT_BINARY_DIR}/ateles_map.h)
+
+
+add_custom_command(
+    OUTPUT ${ESCODEGEN_HDR}
+    COMMAND ${PYTHON} ${MKHEADER} ${ESCODEGEN_SRC} ${ESCODEGEN_HDR} escodegen
+    DEPENDS ${ESCODEGEN_SRC}
+)
+
+add_custom_command(
+    OUTPUT ${ESPRIMA_HDR}
+    COMMAND ${PYTHON} ${MKHEADER} ${ESPRIMA_SRC} ${ESPRIMA_HDR} esprima
+    DEPENDS ${ESCODEGEN_SRC}
+)
+
+add_custom_command(
+    OUTPUT ${REWRITE_ANON_FUN_HDR}
+    COMMAND ${PYTHON}
+        ${MKHEADER}
+        ${REWRITE_ANON_FUN_SRC}
+        ${REWRITE_ANON_FUN_HDR}
+        rewrite_anon_fun
+    DEPENDS ${ESCODEGEN_SRC}
+)
+
+add_custom_command(
+    OUTPUT ${ATELES_MAP_HDR}
+    COMMAND ${PYTHON} ${MKHEADER} ${ATELES_MAP_SRC} ${ATELES_MAP_HDR} ateles_map
+    DEPENDS ${ATELES_MAP_SRC}
+)
+
+set(
+    JS_HDR_LIST
+    ${ESCODEGEN_HDR}
+    ${ESPRIMA_HDR}
+    ${REWRITE_ANON_FUN_HDR}
+    ${ATELES_MAP_HDR}
+)
+
+
 file(GLOB SRC "src/*.cc")
-add_executable(ateles ${ATELES_PB} ${ATELES_GRPC} ${SRC})
+add_executable(ateles ${ATELES_PB} ${ATELES_GRPC} ${JS_HDR_LIST} ${SRC})
 
 set(CFLAGS
     -std=c++14

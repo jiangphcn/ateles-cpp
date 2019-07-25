@@ -67,6 +67,15 @@ class AtelesImpl final : public Ateles::Service {
         ateles::JSMapContext::Ptr js_ctx_ptr =
             ateles::JSMapContext::create(ctx_info->lib());
 
+        for(int i = 0; i < ctx_info->map_funs_size(); i++) {
+            if(!js_ctx_ptr->add_fun(ctx_info->map_funs(i))) {
+                return Status(
+                    StatusCode::INVALID_ARGUMENT, "Invalid map function");
+            }
+        }
+
+        this->_map_ctx[name] = js_ctx_ptr;
+
         return Status::OK;
     }
 
