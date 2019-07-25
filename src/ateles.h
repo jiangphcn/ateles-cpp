@@ -24,13 +24,14 @@ class JSMapContext {
         return Ptr();
     }
 
-    bool add_fun(std::string source);
+    std::string add_fun(std::string source);
     std::vector<std::string> map_doc(std::string doc);
 
   private:
     explicit JSMapContext(std::string lib);
 
     bool init();
+    std::string format_exception(JS::HandleValue exc);
 
     JSContext* _ctx;
     JS::RootedObject* _conv_global;

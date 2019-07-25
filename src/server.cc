@@ -68,9 +68,11 @@ class AtelesImpl final : public Ateles::Service {
             ateles::JSMapContext::create(ctx_info->lib());
 
         for(int i = 0; i < ctx_info->map_funs_size(); i++) {
-            if(!js_ctx_ptr->add_fun(ctx_info->map_funs(i))) {
+            std::string err = js_ctx_ptr->add_fun(ctx_info->map_funs(i));
+            if(!err.empty()) {
+                std::string msg = "Invalid map function: " + err;
                 return Status(
-                    StatusCode::INVALID_ARGUMENT, "Invalid map function");
+                    StatusCode::INVALID_ARGUMENT, msg);
             }
         }
 
@@ -100,7 +102,7 @@ RunServer()
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
     builder.RegisterService(&service);
     std::unique_ptr<Server> server(builder.BuildAndStart());
-    std::cout << "Server listening on " << server_address << std::endl;
+    std::cout << "Listening at: " << server_address << std::endl;
     server->Wait();
 }
 
