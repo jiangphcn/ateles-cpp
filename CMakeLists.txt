@@ -58,7 +58,7 @@ add_custom_command(
 add_custom_command(
     OUTPUT ${ESPRIMA_HDR}
     COMMAND ${PYTHON} ${MKHEADER} ${ESPRIMA_SRC} ${ESPRIMA_HDR} esprima
-    DEPENDS ${ESCODEGEN_SRC}
+    DEPENDS ${ESPRIMA_SRC}
 )
 
 add_custom_command(
@@ -68,7 +68,7 @@ add_custom_command(
         ${REWRITE_ANON_FUN_SRC}
         ${REWRITE_ANON_FUN_HDR}
         rewrite_anon_fun
-    DEPENDS ${ESCODEGEN_SRC}
+        DEPENDS ${REWRITE_ANON_FUN_SRC}
 )
 
 add_custom_command(
