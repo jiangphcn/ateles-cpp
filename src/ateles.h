@@ -31,7 +31,10 @@ class JSMapContext {
     explicit JSMapContext(std::string lib);
 
     bool init();
+    std::string format_string(JS::HandleString str);
+    std::string format_value(JS::HandleValue val);
     std::string format_exception(JS::HandleValue exc);
+
 
     JSContext* _ctx;
     JS::RootedObject* _conv_global;
