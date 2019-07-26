@@ -90,6 +90,7 @@ file(GLOB SRC "src/*.cc")
 add_executable(ateles ${ATELES_PB} ${ATELES_GRPC} ${JS_HDR_LIST} ${SRC})
 
 set(CFLAGS
+    -g
     -std=c++14
     -Wall
     -Werror
