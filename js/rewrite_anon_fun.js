@@ -4,8 +4,8 @@
 //  https://github.com/dmunch/couch-chakra/blob/master/js/normalizeFunction.js
 
 function rewrite_anon_fun(fun) {
-	var ast = esprima.parse(fun);
-	var idx = ast.body.length - 1;
+  var ast = esprima.parse(fun);
+  var idx = ast.body.length - 1;
   var decl = {};
 
   // Search for the first FunctionDeclaration beginning from the end
@@ -17,14 +17,14 @@ function rewrite_anon_fun(fun) {
   // If we have a function declaration without an Id, wrap it
   // in an ExpressionStatement and change it into
   // a FuntionExpression
-	if(decl.type == "FunctionDeclaration" && decl.id == null){
+  if(decl.type == "FunctionDeclaration" && decl.id == null){
     decl.type = "FunctionExpression";
     ast.body[idx] = {
        "type": "ExpressionStatement",
        "expression": decl
     };
-	}
+  }
 
   // Generate source from the rewritten AST
-	return escodegen.generate(ast);
+  return escodegen.generate(ast);
 }
