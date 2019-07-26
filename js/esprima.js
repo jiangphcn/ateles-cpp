@@ -3376,7 +3376,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    statement = this.parseLexicalDeclaration({ inFor: false });
 	                    break;
 	                case 'function':
-	                    statement = this.parseFunctionDeclaration();
+	                    // Apache CouchDB modification: add true to tolerate
+	                    // missing function identifiers.
+	                    statement = this.parseFunctionDeclaration(true);
 	                    break;
 	                case 'class':
 	                    statement = this.parseClassDeclaration();
