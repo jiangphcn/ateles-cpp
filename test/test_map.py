@@ -15,13 +15,14 @@ import ateles_pb2_grpc
 def stub():
     path = os.path.join(os.path.dirname(__file__), "..", "build", "ateles")
     path = os.path.abspath(path)
-    print path
     pipe = sp.Popen(path)
-    time.sleep(1)
-    with grpc.insecure_channel('localhost:50051') as channel:
-        stub = ateles_pb2_grpc.AtelesStub(channel)
-        yield stub
-    pipe.kill()
+    try:
+        time.sleep(1)
+        with grpc.insecure_channel('localhost:50051') as channel:
+            stub = ateles_pb2_grpc.AtelesStub(channel)
+            yield stub
+    finally:
+        pipe.kill()
 
 
 def test_create_context(stub):
