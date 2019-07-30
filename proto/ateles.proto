@@ -27,5 +27,6 @@ message Doc {
 
 
 message MapResult {
-    repeated string results = 1;
+    string ref = 1;
+    string results = 2;
 }

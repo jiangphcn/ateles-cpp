@@ -30,7 +30,7 @@
 #include <grpcpp/server_context.h>
 
 #include "ateles.grpc.pb.h"
-#include "ateles.h"
+#include "worker.h"
 
 using ateles::Ateles;
 using ateles::Doc;
@@ -53,44 +53,95 @@ class AtelesImpl final : public Ateles::Service {
 
     Status CreateMapContext(ServerContext* context,
         const MapContextInfo* ctx_info,
-        MapContext* ctx) override
-    {
-        std::unique_lock<std::mutex> lock(this->_lock);
-
-        std::string name = ctx_info->name();
-        auto js_ctx = this->_map_ctx.find(name);
-        if(js_ctx != this->_map_ctx.end()) {
-            return Status(
-                StatusCode::ALREADY_EXISTS, "This context already exists");
-        }
-
-        ateles::JSMapContext::Ptr js_ctx_ptr =
-            ateles::JSMapContext::create(ctx_info->lib());
-
-        for(int i = 0; i < ctx_info->map_funs_size(); i++) {
-            std::string err = js_ctx_ptr->add_fun(ctx_info->map_funs(i));
-            if(!err.empty()) {
-                std::string msg = "Invalid map function: " + err;
-                return Status(
-                    StatusCode::INVALID_ARGUMENT, msg);
-            }
-        }
-
-        this->_map_ctx[name] = js_ctx_ptr;
-
-        return Status::OK;
-    }
+        MapContext* ctx) override;
 
     Status MapDocs(ServerContext* context,
-        ServerReaderWriter<MapResult, Doc>* stream) override
-    {
-        return Status::OK;
-    }
+        ServerReaderWriter<MapResult, Doc>* stream) override;
 
   private:
-    std::mutex _lock;
-    std::map<std::string, ateles::JSMapContext::Ptr> _map_ctx;
+      Worker::Ptr get_worker(std::string& ref);
+
+    std::mutex _worker_lock;
+    std::map<std::string, ateles::Worker::Ptr> _workers;
 };
+
+Status
+CreateMapContext(ServerContext* context,
+    const MapContextInfo* ctx_info,
+    MapContext* ctx)
+{
+    std::unique_lock<std::mutex> lock(this->_worker_lock);
+
+    std::string name = ctx_info->name();
+    auto iter = this->_workers.find(name);
+    if(iter != this->_workers.end()) {
+        return Status(
+            StatusCode::ALREADY_EXISTS, "This context already exists");
+    }
+
+    auto worker = ateles::Worker::create();
+
+    auto fut = worker->set_lib(ctx_info->lib());
+    fut.wait();
+    Result result = fut.get();
+
+    if(result->first) {
+        return Status(StatusCode::INVALID_ARGUMENT, "Invalid library");
+    }
+
+    for(int i = 0; i < ctx_info->map_funs_size(); i++) {
+        fut = worker->add_fun(ctx_info->map_funs(i));
+        fut.wait();
+        result = fut.get();
+
+        if(result->first) {
+            return Status(StatusCode::INVALID_ARGUMENT,
+                "Invalid map function: " + ctx_info->map_funs(i));
+        }
+    }
+
+    this->_workers[name] = worker;
+    ctx->set_ref(name);
+    return Status::OK;
+}
+
+Status
+MapDocs(ServerContext* context, ServerReaderWriter<MapResult, Doc>* stream)
+{
+    Doc doc;
+    while(stream->Read(&doc)) {
+        auto worker = this->get_worker(doc.ref());
+        if(!worker) {
+            return Status(StatusCode::NOT_FOUND, "Missing context for ref");
+        }
+
+        std::string results;
+        std::future<Result> fut = worker->map_doc(doc.body(), results);
+        fut.wait();
+        Result result = fut.get();
+
+        MapResult r;
+        r.set_ref(doc.ref());
+        r.set_results(results);
+        stream->Write(r);
+    }
+    return Status::OK;
+}
+
+
+Worker::Ptr
+AtelesImpl::get_worker(std::string& ref)
+{
+    std::unique_lock<std::mutex> lock(_lock);
+
+    auto iter = this->_workers.find(ref);
+    if(iter == this->_workers.end()) {
+        return Worker::Ptr();
+    }
+
+    return iter->second;
+}
+
 
 void
 RunServer()
