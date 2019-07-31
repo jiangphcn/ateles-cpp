@@ -18,14 +18,14 @@ build: init
 venv:
 	virtualenv venv
 	venv/bin/pip install -r test/requirements.txt
+
+
+check: build venv
 	venv/bin/python -m grpc_tools.protoc \
 		-I ./proto \
 		--python_out=test/ \
 		--grpc_python_out=test/ \
 		ateles.proto
-
-
-check: build venv
 	venv/bin/pytest
 
 

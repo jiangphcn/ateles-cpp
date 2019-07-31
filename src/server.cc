@@ -32,11 +32,6 @@
 #include "ateles.grpc.pb.h"
 #include "worker.h"
 
-using ateles::Ateles;
-using ateles::Doc;
-using ateles::MapContext;
-using ateles::MapContextInfo;
-using ateles::MapResult;
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
@@ -47,92 +42,116 @@ using grpc::Status;
 using grpc::StatusCode;
 using std::chrono::system_clock;
 
+namespace ateles {
+
 class AtelesImpl final : public Ateles::Service {
   public:
     explicit AtelesImpl() {}
 
-    Status CreateMapContext(ServerContext* context,
-        const MapContextInfo* ctx_info,
-        MapContext* ctx) override;
+    Status CreateContext(ServerContext* cx,
+        const CreateContextRequest* req,
+        CreateContextResponse* resp) override;
 
-    Status MapDocs(ServerContext* context,
-        ServerReaderWriter<MapResult, Doc>* stream) override;
+    Status AddMapFuns(ServerContext* cx,
+        const AddMapFunsRequest* req,
+        AddMapFunsResponse* resp) override;
+
+    Status MapDocs(ServerContext* cx,
+        ServerReaderWriter<MapDocsResponse, MapDocsRequest>* stream) override;
 
   private:
-      Worker::Ptr get_worker(std::string& ref);
+    Worker::Ptr get_worker(const std::string& ref);
 
     std::mutex _worker_lock;
-    std::map<std::string, ateles::Worker::Ptr> _workers;
+    std::map<std::string, Worker::Ptr> _workers;
 };
 
 Status
-CreateMapContext(ServerContext* context,
-    const MapContextInfo* ctx_info,
-    MapContext* ctx)
+AtelesImpl::CreateContext(ServerContext* cx,
+    const CreateContextRequest* req,
+    CreateContextResponse* resp)
 {
     std::unique_lock<std::mutex> lock(this->_worker_lock);
 
-    std::string name = ctx_info->name();
-    auto iter = this->_workers.find(name);
+    std::string cxid = req->context_id();
+    auto iter = this->_workers.find(cxid);
     if(iter != this->_workers.end()) {
         return Status(
-            StatusCode::ALREADY_EXISTS, "This context already exists");
+            StatusCode::ALREADY_EXISTS, "The given context_id already exists.");
     }
 
-    auto worker = ateles::Worker::create();
-
-    auto fut = worker->set_lib(ctx_info->lib());
-    fut.wait();
-    Result result = fut.get();
-
-    if(result->first) {
-        return Status(StatusCode::INVALID_ARGUMENT, "Invalid library");
+    try {
+        this->_workers[cxid] = Worker::create();
+    } catch(AtelesError& err) {
+        return Status(err.code(), err.what());
     }
 
-    for(int i = 0; i < ctx_info->map_funs_size(); i++) {
-        fut = worker->add_fun(ctx_info->map_funs(i));
-        fut.wait();
-        result = fut.get();
-
-        if(result->first) {
-            return Status(StatusCode::INVALID_ARGUMENT,
-                "Invalid map function: " + ctx_info->map_funs(i));
-        }
-    }
-
-    this->_workers[name] = worker;
-    ctx->set_ref(name);
     return Status::OK;
 }
 
 Status
-MapDocs(ServerContext* context, ServerReaderWriter<MapResult, Doc>* stream)
+AtelesImpl::AddMapFuns(ServerContext* cx,
+    const AddMapFunsRequest* req,
+    AddMapFunsResponse* resp)
 {
-    Doc doc;
-    while(stream->Read(&doc)) {
-        auto worker = this->get_worker(doc.ref());
+    auto worker = this->get_worker(req->context_id());
+    if(!worker) {
+        return Status(
+            StatusCode::NOT_FOUND, "The given context_id does not exist.");
+    }
+
+    JSFuture futures[req->map_funs_size() + 1];
+
+    futures[0] = worker->set_lib(req->lib());
+    for(int i = 0; i < req->map_funs_size(); i++) {
+        futures[i + 1] = worker->add_map_fun(req->map_funs(i));
+    }
+
+    try {
+        for(int i = 0; i < req->map_funs_size() + 1; i++) {
+            futures[i].get();
+        }
+    } catch(AtelesError& err) {
+        return Status(err.code(), err.what());
+    }
+
+    return Status::OK;
+}
+
+Status
+AtelesImpl::MapDocs(ServerContext* context,
+    ServerReaderWriter<MapDocsResponse, MapDocsRequest>* stream)
+{
+    MapDocsRequest req;
+    while(stream->Read(&req)) {
+        auto worker = this->get_worker(req.context_id());
         if(!worker) {
-            return Status(StatusCode::NOT_FOUND, "Missing context for ref");
+            return Status(StatusCode::NOT_FOUND, "The given context_id does not exist.");
         }
 
-        std::string results;
-        std::future<Result> fut = worker->map_doc(doc.body(), results);
-        fut.wait();
-        Result result = fut.get();
+        MapDocsResponse resp;
 
-        MapResult r;
-        r.set_ref(doc.ref());
-        r.set_results(results);
-        stream->Write(r);
+        try {
+            auto f = worker->map_doc(req.doc());
+            f.wait();
+            resp.set_ok(true);
+            resp.set_map_id(req.map_id());
+            resp.set_result(f.get());
+        } catch(AtelesError err) {
+            resp.set_ok(false);
+            resp.set_map_id(std::to_string(err.code()));
+            resp.set_result(err.what());
+        }
+
+        stream->Write(resp);
     }
     return Status::OK;
 }
 
-
 Worker::Ptr
-AtelesImpl::get_worker(std::string& ref)
+AtelesImpl::get_worker(const std::string& ref)
 {
-    std::unique_lock<std::mutex> lock(_lock);
+    std::unique_lock<std::mutex> lock(_worker_lock);
 
     auto iter = this->_workers.find(ref);
     if(iter == this->_workers.end()) {
@@ -142,12 +161,13 @@ AtelesImpl::get_worker(std::string& ref)
     return iter->second;
 }
 
+}
 
 void
 RunServer()
 {
     std::string server_address("0.0.0.0:50051");
-    AtelesImpl service;
+    ateles::AtelesImpl service;
 
     ServerBuilder builder;
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());

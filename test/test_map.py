@@ -1,5 +1,6 @@
 
 
+import json
 import os
 import subprocess as sp
 import time
@@ -27,21 +28,26 @@ def stub():
         pass
 
 
-def test_create_context(stub):
-    ctx_info = ateles_pb2.MapContextInfo(name="foo", lib="", map_funs=[
+def test_create_context_with_map_funs(stub):
+    req = ateles_pb2.CreateContextRequest(context_id="foo");
+    stub.CreateContext(req)
+
+    req = ateles_pb2.AddMapFunsRequest(context_id="foo", map_funs=[
             "function(doc) {emit(doc.value, null);}"
         ])
-    ret = stub.CreateMapContext(ctx_info)
-    print ret
+    ret = stub.AddMapFuns(req)
+    print dir(ret)
 
 
 def test_map_doc(stub):
     def gen_docs():
-        for i in range(1, 5):
-            body = '{"value": %s}' % i
-            doc = ateles_pb2.Doc(ref="foo", body=body)
-            yield doc
-    resps = stub.MapDocs(gen_docs())
-    for resp in resps:
-        print resp.results
-    assert 1 == 0
+        for i in range(0, 4):
+            yield ateles_pb2.MapDocsRequest(
+                    context_id="foo",
+                    map_id="%d" % i,
+                    doc='{"value": %s}' % i
+                )
+    for idx, resp in enumerate(stub.MapDocs(gen_docs())):
+        assert resp.ok
+        assert resp.map_id == "%d" % idx
+        assert json.loads(resp.result) == [[[idx, None]]]

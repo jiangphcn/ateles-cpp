@@ -3,30 +3,43 @@ syntax = "proto3";
 package ateles;
 
 service Ateles {
-  rpc CreateMapContext(MapContextInfo) returns (MapContext) {}
-  rpc MapDocs(stream Doc) returns (stream MapResult) {}
+  rpc CreateContext(CreateContextRequest) returns (CreateContextResponse) {}
+  rpc AddMapFuns(AddMapFunsRequest) returns (AddMapFunsResponse) {}
+  rpc MapDocs(stream MapDocsRequest) returns (stream MapDocsResponse) {}
 }
 
 
-message MapContextInfo {
-    string name = 1;
+message CreateContextRequest {
+    string context_id = 1;
+}
+
+
+message CreateContextResponse {
+
+}
+
+
+message AddMapFunsRequest {
+    string context_id = 1;
     string lib = 2;
     repeated string map_funs = 3;
 }
 
 
-message MapContext {
-    string ref = 1;
+message AddMapFunsResponse {
+
 }
 
 
-message Doc {
-    string ref = 1;
-    string body = 2;
+message MapDocsRequest {
+    string context_id = 1;
+    string map_id = 2;
+    string doc = 3;
 }
 
 
-message MapResult {
-    string ref = 1;
-    string results = 2;
+message MapDocsResponse {
+    bool ok = 1;
+    string map_id = 2;
+    string result = 3;
 }
