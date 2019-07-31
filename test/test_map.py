@@ -17,14 +17,14 @@ def stub():
     print "Creating connection"
     path = os.path.join(os.path.dirname(__file__), "..", "build", "ateles")
     path = os.path.abspath(path)
-    #pipe = sp.Popen(path)
+    pipe = sp.Popen(path)
     try:
         time.sleep(1)
         with grpc.insecure_channel('localhost:50051') as channel:
             stub = ateles_pb2_grpc.AtelesStub(channel)
             yield stub
     finally:
-        #pipe.kill()
+        pipe.kill()
         pass
 
 
