@@ -79,11 +79,6 @@ class Worker {
     std::future<bool> _inited;
 };
 
-std::string task_set_lib(Context* cx, const std::string& lib);
-std::string task_add_map_fun(Context* cx, const std::string& source);
-std::string task_map_doc(Context* cx, const std::string& body);
-std::string task_exit(Context* cx);
-
 }  // namespace ateles
 
 #endif  // included worker.h

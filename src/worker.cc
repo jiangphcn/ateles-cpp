@@ -35,26 +35,34 @@ Worker::Worker() : _task_lock(), _tasks()
 void
 Worker::exit()
 {
-    JSFuture f = this->add_task(task_exit);
+    JSFuture f = this->add_task([] (Context* cx) -> std::string {
+        throw AtelesExit();
+    });
     f.wait();
 }
 
 JSFuture
 Worker::set_lib(const std::string& lib)
 {
-    return this->add_task(std::bind(task_set_lib, _1, lib));
+    return this->add_task([&lib] (Context* cx) -> std::string {
+        return cx->set_lib(lib);
+    });
 }
 
 JSFuture
 Worker::add_map_fun(const std::string& source)
 {
-    return this->add_task(std::bind(task_add_map_fun, _1, source));
+    return this->add_task([&source] (Context* cx) -> std::string {
+        return cx->add_map_fun(source);
+    });
 }
 
 JSFuture
 Worker::map_doc(const std::string& doc)
 {
-    return this->add_task(std::bind(task_map_doc, _1, doc));
+    return this->add_task([&doc] (Context* cx) -> std::string {
+        return cx->map_doc(doc);
+    });
 }
 
 void
@@ -104,30 +112,6 @@ Worker::get_task(Task::Ptr& task)
     task = std::move(this->_tasks.front());
     this->_tasks.pop();
     return true;
-}
-
-std::string
-task_set_lib(Context* cx, const std::string& lib)
-{
-    return cx->set_lib(lib);
-}
-
-std::string
-task_add_map_fun(Context* cx, const std::string& source)
-{
-    return cx->add_map_fun(source);
-}
-
-std::string
-task_map_doc(Context* cx, const std::string& doc)
-{
-    return cx->map_doc(doc);
-}
-
-std::string
-task_exit(Context* cx)
-{
-    throw AtelesExit();
 }
 
 }  // namespace ateles
