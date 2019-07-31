@@ -35,24 +35,22 @@ Worker::Worker() : _task_lock(), _tasks()
 void
 Worker::exit()
 {
-    JSFuture f = this->add_task([] (Context* cx) -> std::string {
-        throw AtelesExit();
-    });
+    JSFuture f =
+        this->add_task([](Context* cx) -> std::string { throw AtelesExit(); });
     f.wait();
 }
 
 JSFuture
 Worker::set_lib(const std::string& lib)
 {
-    return this->add_task([&lib] (Context* cx) -> std::string {
-        return cx->set_lib(lib);
-    });
+    return this->add_task(
+        [&lib](Context* cx) -> std::string { return cx->set_lib(lib); });
 }
 
 JSFuture
 Worker::add_map_fun(const std::string& source)
 {
-    return this->add_task([&source] (Context* cx) -> std::string {
+    return this->add_task([&source](Context* cx) -> std::string {
         return cx->add_map_fun(source);
     });
 }
@@ -60,9 +58,8 @@ Worker::add_map_fun(const std::string& source)
 JSFuture
 Worker::map_doc(const std::string& doc)
 {
-    return this->add_task([&doc] (Context* cx) -> std::string {
-        return cx->map_doc(doc);
-    });
+    return this->add_task(
+        [&doc](Context* cx) -> std::string { return cx->map_doc(doc); });
 }
 
 void

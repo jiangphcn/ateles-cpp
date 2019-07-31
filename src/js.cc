@@ -114,7 +114,8 @@ Context::Context() : _cx(create_context(), JS_DestroyContext)
             std::string((char*) ateles_map_data, ateles_map_len));
 
         JS::HandleObject global_obj(this->_global);
-        if(!JS_DefineFunction(this->_cx.get(), global_obj, "print", print_fun, 1, 0)) {
+        if(!JS_DefineFunction(
+               this->_cx.get(), global_obj, "print", print_fun, 1, 0)) {
             throw AtelesError("Error installing print function.");
         }
     }
@@ -229,7 +230,6 @@ Context::transpile(const std::string& source)
     return js_to_string(this->_cx.get(), rval);
 }
 
-
 std::string
 js_to_string(JSContext* cx, JS::HandleValue val)
 {
@@ -244,7 +244,6 @@ js_to_string(JSContext* cx, JS::HandleValue val)
 
     return chars.get();
 }
-
 
 std::string
 format_string(JSContext* cx, JS::HandleString str)

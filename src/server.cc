@@ -42,8 +42,8 @@ using grpc::Status;
 using grpc::StatusCode;
 using std::chrono::system_clock;
 
-namespace ateles {
-
+namespace ateles
+{
 class AtelesImpl final : public Ateles::Service {
   public:
     explicit AtelesImpl() {}
@@ -126,7 +126,8 @@ AtelesImpl::MapDocs(ServerContext* context,
     while(stream->Read(&req)) {
         auto worker = this->get_worker(req.context_id());
         if(!worker) {
-            return Status(StatusCode::NOT_FOUND, "The given context_id does not exist.");
+            return Status(
+                StatusCode::NOT_FOUND, "The given context_id does not exist.");
         }
 
         MapDocsResponse resp;
@@ -161,7 +162,7 @@ AtelesImpl::get_worker(const std::string& ref)
     return iter->second;
 }
 
-}
+}  // namespace ateles
 
 void
 RunServer()
