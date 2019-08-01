@@ -28,6 +28,7 @@ class Context {
 };
 
 std::string js_to_string(JSContext* cx, JS::HandleValue val);
+JSString* string_to_js(JSContext* cx, const std::string& s);
 std::string format_string(JSContext* cx, JS::HandleString str);
 std::string format_value(JSContext* cx, JS::HandleValue val);
 std::string format_exception(JSContext* cx, JS::HandleValue exc);

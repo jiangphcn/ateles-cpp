@@ -13,7 +13,12 @@ function set_lib(source) {
 }
 
 function add_fun(source) {
-  map_funs.push(eval(source));
+  var fun = eval(source);
+  if(typeof fun === "function") {
+    map_funs.push(fun)
+  } else {
+    throw "Invalid function"
+  }
 }
 
 function map_doc(doc_str) {

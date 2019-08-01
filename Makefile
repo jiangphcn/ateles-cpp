@@ -26,7 +26,16 @@ check: build venv
 		--python_out=test/ \
 		--grpc_python_out=test/ \
 		ateles.proto
-	venv/bin/pytest
+	venv/bin/pytest -v
+
+
+check-all: build venv
+	venv/bin/python -m grpc_tools.protoc \
+		-I ./proto \
+		--python_out=test/ \
+		--grpc_python_out=test/ \
+		ateles.proto
+	venv/bin/pytest -v --include-slow
 
 
 coverage:

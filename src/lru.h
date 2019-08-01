@@ -5,7 +5,6 @@
 #include <stdexcept>
 #include <unordered_map>
 
-
 // This is a very basic LRU. The main thing to note
 // is that a default constructed `value_type` is used
 // as the sentinel value for "key not present". This
@@ -27,6 +26,10 @@ class LRU {
     {
         auto iter = this->_key_map.find(key);
         if(iter != this->_key_map.end()) {
+            // Found this splice gem here:
+            //   https://timday.bitbucket.io/lru.html
+            this->_key_list.splice(
+                this->_key_list.end(), this->_key_list, (*iter).second.second);
             return iter->second.first;
         } else {
             return value_type();
@@ -42,14 +45,17 @@ class LRU {
             }
 
             auto liter = this->_key_list.insert(this->_key_list.end(), key);
-            auto entry = std::make_pair(key, std::make_pair(value, liter));
-            this->_key_map.insert(entry);
+            this->_key_map[key] = std::make_pair(value, liter);
         } else {
-            // Found this splice gem here:
-            //   https://timday.bitbucket.io/lru.html
             this->_key_list.splice(
                 this->_key_list.end(), this->_key_list, (*kiter).second.second);
         }
+    }
+
+    void clear()
+    {
+        this->_key_list.clear();
+        this->_key_map.clear();
     }
 
   private:

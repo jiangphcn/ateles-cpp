@@ -30,6 +30,7 @@ Worker::Worker() : _task_lock(), _tasks()
 
     this->_thread =
         std::make_unique<std::thread>(&Worker::run, this, std::move(initedp));
+    this->_thread->detach();
 }
 
 Worker::~Worker()

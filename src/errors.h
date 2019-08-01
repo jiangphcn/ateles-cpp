@@ -20,10 +20,7 @@ class AtelesError : public std::exception {
 
     virtual ~AtelesError() throw() {}
 
-    virtual grpc::StatusCode code() const throw()
-    {
-        return grpc::StatusCode::INTERNAL;
-    }
+    virtual grpc::StatusCode code() const throw() = 0;
 
     virtual const char* what() const throw() { return this->_what.c_str(); }
 
@@ -64,6 +61,19 @@ class AtelesResourceExhaustedError : public AtelesError {
     virtual grpc::StatusCode code() const throw()
     {
         return grpc::StatusCode::RESOURCE_EXHAUSTED;
+    }
+};
+
+class AtelesInternalError : public AtelesError {
+  public:
+    explicit AtelesInternalError(const std::string& what)
+        : AtelesError(what)
+    {
+    }
+
+    virtual grpc::StatusCode code() const throw()
+    {
+        return grpc::StatusCode::INTERNAL;
     }
 };
 
