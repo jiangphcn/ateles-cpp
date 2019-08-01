@@ -11,7 +11,6 @@
 
 namespace ateles
 {
-
 static JSClassOps global_ops = {nullptr,
     nullptr,
     nullptr,
@@ -136,7 +135,8 @@ Context::add_map_fun(const std::string& source)
     if(!JS::Call(this->_cx.get(), this_obj, "add_fun", argv, &rval)) {
         JS::RootedValue exc(this->_cx.get());
         if(!JS_GetPendingException(this->_cx.get(), &exc)) {
-            throw AtelesInternalError("Unknown error when adding map function.");
+            throw AtelesInternalError(
+                "Unknown error when adding map function.");
         } else {
             JS_ClearPendingException(this->_cx.get());
             throw AtelesInvalidArgumentError("Error adding map function: "

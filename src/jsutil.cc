@@ -1,12 +1,12 @@
 
 #include <sstream>
 
-#include "js.h"
 #include "errors.h"
+#include "js.h"
 #include "js/Conversions.h"
 
-namespace ateles {
-
+namespace ateles
+{
 enum class PrintErrorKind
 {
     Error,
@@ -14,7 +14,6 @@ enum class PrintErrorKind
     StrictWarning,
     Note
 };
-
 
 std::string
 js_to_string(JSContext* cx, JS::HandleValue val)
@@ -41,7 +40,6 @@ string_to_js(JSContext* cx, const std::string& s)
 
     throw AtelesResourceExhaustedError("Unable to allocate string object.");
 }
-
 
 std::string
 format_string(JSContext* cx, JS::HandleString str)
@@ -170,7 +168,8 @@ load_script(JSContext* cx, std::string name, std::string source)
     if(!JS::Evaluate(cx, opts, source.c_str(), source.size(), &rval)) {
         JS::RootedValue exc(cx);
         if(!JS_GetPendingException(cx, &exc)) {
-            throw AtelesInternalError("Unknown error evaluating script: " + name);
+            throw AtelesInternalError(
+                "Unknown error evaluating script: " + name);
         } else {
             JS_ClearPendingException(cx);
             throw AtelesInternalError(
@@ -179,4 +178,4 @@ load_script(JSContext* cx, std::string name, std::string source)
     }
 }
 
-}
+}  // namespace ateles

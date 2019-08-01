@@ -31,6 +31,8 @@
 #include <grpcpp/server_context.h>
 
 #include "ateles.grpc.pb.h"
+#include "ateles_proto.h"
+#include "cxxopts.h"
 #include "lru.h"
 #include "worker.h"
 
@@ -129,7 +131,6 @@ Status
 AtelesImpl::MapDocs(ServerContext* context,
     ServerReaderWriter<MapDocsResponse, MapDocsRequest>* stream)
 {
-
     MapDocsRequest req;
     MapDocsResponse resp;
     Worker::Ptr worker;
@@ -159,7 +160,9 @@ AtelesImpl::MapDocs(ServerContext* context,
 }
 
 Status
-AtelesImpl::Reset(ServerContext* cx, const ResetRequest* req, ResetResponse* resp)
+AtelesImpl::Reset(ServerContext* cx,
+    const ResetRequest* req,
+    ResetResponse* resp)
 {
     std::unique_lock<std::mutex> lock(this->_worker_lock);
     this->_workers.clear();
@@ -204,12 +207,39 @@ main(int argc, char** argv)
 {
     std::signal(SIGINT, exit_cleanly);
 
-    JS_Init();
     // Docs say we have to create at least one JSContext
     // in a single threaded manner. So here we are.
+    JS_Init();
     JS_NewContext(8L * 1024 * 1024);
 
-    RunServer();
+    cxxopts::Options opts(argv[0], "A JavaScript engine for CouchDB\n");
+
+    // clang-format off
+    opts.add_options("", {
+        {"h,help", "Display this help message and exit."},
+        {"p,proto", "Dump the proto definition this binary was compiled with."}
+    });
+    // clang-format on
+
+    try {
+        auto cfg = opts.parse(argc, argv);
+
+        if(cfg["help"].as<bool>()) {
+            fprintf(stderr, "%s\n", opts.help().c_str());
+            exit(0);
+        }
+
+        if(cfg["proto"].as<bool>()) {
+            std::string proto((char*) ateles_proto_data, ateles_proto_len);
+            fprintf(stderr, "%s", proto.c_str());
+            exit(0);
+        }
+
+        RunServer();
+    } catch(cxxopts::OptionException& exc) {
+        fprintf(stderr, "Option error: %s\n", exc.what());
+        exit(1);
+    }
 
     return 0;
 }

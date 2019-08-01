@@ -55,6 +55,8 @@ set(REWRITE_ANON_FUN_SRC ${CMAKE_CURRENT_SOURCE_DIR}/js/rewrite_anon_fun.js)
 set(REWRITE_ANON_FUN_HDR ${CMAKE_CURRENT_BINARY_DIR}/rewrite_anon_fun.h)
 set(ATELES_MAP_SRC ${CMAKE_CURRENT_SOURCE_DIR}/js/ateles_map.js)
 set(ATELES_MAP_HDR ${CMAKE_CURRENT_BINARY_DIR}/ateles_map.h)
+set(PROTO_SRC ${CMAKE_CURRENT_SOURCE_DIR}/proto/ateles.proto)
+set(PROTO_HDR ${CMAKE_CURRENT_BINARY_DIR}/ateles_proto.h)
 
 
 add_custom_command(
@@ -85,17 +87,24 @@ add_custom_command(
     DEPENDS ${ATELES_MAP_SRC}
 )
 
+add_custom_command(
+    OUTPUT ${PROTO_HDR}
+    COMMAND ${PYTHON} ${MKHEADER} ${PROTO_SRC} ${PROTO_HDR} ateles_proto
+    DEPENDS ${PROTO_SRC}
+)
+
 set(
-    JS_HDR_LIST
+    GEN_HDR_LIST
     ${ESCODEGEN_HDR}
     ${ESPRIMA_HDR}
     ${REWRITE_ANON_FUN_HDR}
     ${ATELES_MAP_HDR}
+    ${PROTO_HDR}
 )
 
 
 file(GLOB SRC "src/*.cc")
-add_executable(ateles ${ATELES_PB} ${ATELES_GRPC} ${JS_HDR_LIST} ${SRC})
+add_executable(ateles ${ATELES_PB} ${ATELES_GRPC} ${GEN_HDR_LIST} ${SRC})
 
 set(CFLAGS
     -g
