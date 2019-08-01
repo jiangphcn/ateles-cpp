@@ -6,6 +6,12 @@
 #include <unordered_map>
 
 
+// This is a very basic LRU. The main thing to note
+// is that a default constructed `value_type` is used
+// as the sentinel value for "key not present". This
+// works naturally for smart pointers but may not work
+// well for other types.
+
 namespace ateles
 {
 template <typename key_type, typename value_type>
@@ -39,6 +45,8 @@ class LRU {
             auto entry = std::make_pair(key, std::make_pair(value, liter));
             this->_key_map.insert(entry);
         } else {
+            // Found this splice gem here:
+            //   https://timday.bitbucket.io/lru.html
             this->_key_list.splice(
                 this->_key_list.end(), this->_key_list, (*kiter).second.second);
         }
