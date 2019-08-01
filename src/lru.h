@@ -17,8 +17,6 @@ class LRU {
 
     explicit LRU(size_t capacity) : _capacity(capacity) {}
 
-    bool contains(key_type key) {}
-
     value_type get(key_type key)
     {
         auto iter = this->_key_map.find(key);
