@@ -17,6 +17,8 @@ class Task {
     typedef std::function<std::string(Context*)> TaskCallBack;
     typedef std::unique_ptr<Task> Ptr;
 
+    ~Worker();
+
     explicit Task(TaskCallBack cb) : _cb(cb), _promise() {}
 
     static Ptr create(TaskCallBack cb) { return std::make_unique<Task>(cb); }

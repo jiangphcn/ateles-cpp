@@ -32,6 +32,19 @@ Worker::Worker() : _task_lock(), _tasks()
         std::make_unique<std::thread>(&Worker::run, this, std::move(initedp));
 }
 
+Worker::~Worker()
+{
+    // TODO: We may have to shunt this off to a cleanup
+    // thread since this will block waiting for the
+    // worker's thread to exit.
+    //
+    // This is important because this will be triggered from
+    // a random request for a different worker which would
+    // then be evicting this worker from the LRU which may
+    // be working on a large doc map or something.
+    this->exit();
+}
+
 void
 Worker::exit()
 {
