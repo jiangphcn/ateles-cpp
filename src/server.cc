@@ -22,6 +22,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <csignal>
 
 #include <grpc/grpc.h>
 #include <grpcpp/security/server_credentials.h>
@@ -172,9 +173,17 @@ RunServer()
     server->Wait();
 }
 
+void
+exit_cleanly(int signum)
+{
+    exit(1);
+}
+
 int
 main(int argc, char** argv)
 {
+    std::signal(SIGINT, exit_cleanly);
+
     JS_Init();
     // Docs say we have to create at least one JSContext
     // in a single threaded manner. So here we are.

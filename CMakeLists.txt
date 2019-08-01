@@ -12,6 +12,14 @@ find_program(PROTOC protoc)
 find_program(GRPC_PLUGIN grpc_cpp_plugin)
 find_program(PYTHON python)
 
+option(ENABLE_COVERAGE "Build for code coverage reports" OFF)
+
+if(ENABLE_COVERAGE)
+    set(COVERAGE_OPTS -fprofile-instr-generate -fcoverage-mapping)
+else()
+    set(COVERGE_OPTS)
+endif()
+
 set(PROTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/proto)
 set(ATELES_PB_SRC ${PROTO_DIR}/ateles.proto)
 set(ATELES_PB ${CMAKE_CURRENT_BINARY_DIR}/ateles.pb.cc)
@@ -96,7 +104,8 @@ set(CFLAGS
     -Werror
     ${MOZJS_CFLAGS}
     ${PROTOBUF_CFLAGS}
-    ${GRPC_CFLAGS})
+    ${GRPC_CFLAGS}
+    ${COVERAGE_OPTS})
 
 set(INCLUDES
     ${CMAKE_CURRENT_BINARY_DIR}
@@ -108,7 +117,7 @@ set(LDFLAGS
     ${MOZJS_LDFLAGS}
     ${PROTOBUF_LDFLAGS}
     ${GRPC_LDFLAGS}
-    -lgrpc++_reflection)
+    ${COVERAGE_OPTS})
 
 target_compile_options(ateles PUBLIC ${CFLAGS})
 target_include_directories(ateles PUBLIC ${INCLUDES})
