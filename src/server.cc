@@ -30,6 +30,7 @@
 #include <grpcpp/server_context.h>
 
 #include "ateles.grpc.pb.h"
+#include "lru.h"
 #include "worker.h"
 
 using grpc::Server;
@@ -46,7 +47,7 @@ namespace ateles
 {
 class AtelesImpl final : public Ateles::Service {
   public:
-    explicit AtelesImpl() {}
+    explicit AtelesImpl() : _workers(50) {}
 
     Status CreateContext(ServerContext* cx,
         const CreateContextRequest* req,
@@ -63,7 +64,7 @@ class AtelesImpl final : public Ateles::Service {
     Worker::Ptr get_worker(const std::string& ref);
 
     std::mutex _worker_lock;
-    std::map<std::string, Worker::Ptr> _workers;
+    LRU<std::string, Worker::Ptr> _workers;
 };
 
 Status
@@ -74,14 +75,13 @@ AtelesImpl::CreateContext(ServerContext* cx,
     std::unique_lock<std::mutex> lock(this->_worker_lock);
 
     std::string cxid = req->context_id();
-    auto iter = this->_workers.find(cxid);
-    if(iter != this->_workers.end()) {
+    if(this->_workers.get(cxid)) {
         return Status(
             StatusCode::ALREADY_EXISTS, "The given context_id already exists.");
     }
 
     try {
-        this->_workers[cxid] = Worker::create();
+        this->_workers.put(cxid, Worker::create());
     } catch(AtelesError& err) {
         return Status(err.code(), err.what());
     }
@@ -150,16 +150,10 @@ AtelesImpl::MapDocs(ServerContext* context,
 }
 
 Worker::Ptr
-AtelesImpl::get_worker(const std::string& ref)
+AtelesImpl::get_worker(const std::string& cxid)
 {
     std::unique_lock<std::mutex> lock(_worker_lock);
-
-    auto iter = this->_workers.find(ref);
-    if(iter == this->_workers.end()) {
-        return Worker::Ptr();
-    }
-
-    return iter->second;
+    return this->_workers.get(cxid);
 }
 
 }  // namespace ateles
