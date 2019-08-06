@@ -62,10 +62,10 @@ Worker::set_lib(const std::string& lib)
 }
 
 JSFuture
-Worker::add_map_fun(const std::string& source)
+Worker::add_map_fun(const std::string& id, const std::string& source)
 {
-    return this->add_task([&source](Context* cx) -> std::string {
-        return cx->add_map_fun(source);
+    return this->add_task([&id, &source](Context* cx) -> std::string {
+        return cx->add_map_fun(id, source);
     });
 }
 

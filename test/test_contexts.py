@@ -39,8 +39,11 @@ def test_create_lots_of_contexts(stub):
 
 
 def test_add_map_funs_missing_context(stub):
+    map_fun = ateles_pb2.MapFun()
+    map_fun.id = "bad-id"
+    map_fun.fun = "function(doc) {throw \"foo\";}"
     req = ateles_pb2.AddMapFunsRequest(context_id="no_emit", map_funs=[
-            "function(doc) {throw \"foo\";}"
+            map_fun
         ])
     try:
         stub.AddMapFuns(req)

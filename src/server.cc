@@ -113,7 +113,8 @@ AtelesImpl::AddMapFuns(ServerContext* cx,
 
     futures[0] = worker->set_lib(req->lib());
     for(int i = 0; i < req->map_funs_size(); i++) {
-        futures[i + 1] = worker->add_map_fun(req->map_funs(i));
+        const auto& map_fun = req->map_funs(i);
+        futures[i + 1] = worker->add_map_fun(map_fun.id(), map_fun.fun());
     }
 
     try {

@@ -16,7 +16,7 @@ class Context {
     explicit Context();
 
     std::string set_lib(const std::string& lib);
-    std::string add_map_fun(const std::string& source);
+    std::string add_map_fun(const std::string& id, const std::string& source);
     std::string map_doc(const std::string& doc);
 
   private:

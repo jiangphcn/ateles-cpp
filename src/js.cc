@@ -119,7 +119,7 @@ Context::set_lib(const std::string& lib)
 }
 
 std::string
-Context::add_map_fun(const std::string& source)
+Context::add_map_fun(const std::string& id, const std::string& source)
 {
     std::string conv = this->transpile(source);
 
@@ -127,12 +127,13 @@ Context::add_map_fun(const std::string& source)
     JSAutoCompartment ac(this->_cx.get(), *this->_global);
 
     JS::HandleObject this_obj(this->_global);
-    JS::AutoValueArray<1> argv(this->_cx.get());
-    argv[0].setString(string_to_js(this->_cx.get(), conv));
+    JS::AutoValueArray<2> argv(this->_cx.get());
+    argv[0].setString(string_to_js(this->_cx.get(), id));
+    argv[1].setString(string_to_js(this->_cx.get(), conv));
 
     JS::RootedValue rval(this->_cx.get());
 
-    if(!JS::Call(this->_cx.get(), this_obj, "add_fun", argv, &rval)) {
+    if(!JS::Call(this->_cx.get(), this_obj, "addFun", argv, &rval)) {
         JS::RootedValue exc(this->_cx.get());
         if(!JS_GetPendingException(this->_cx.get(), &exc)) {
             throw AtelesInternalError(
@@ -162,7 +163,7 @@ Context::map_doc(const std::string& doc)
 
     JS::RootedValue rval(this->_cx.get());
 
-    if(!JS::Call(this->_cx.get(), this_obj, "map_doc", argv, &rval)) {
+    if(!JS::Call(this->_cx.get(), this_obj, "mapDoc", argv, &rval)) {
         JS::RootedValue exc(this->_cx.get());
         if(!JS_GetPendingException(this->_cx.get(), &exc)) {
             throw AtelesInternalError("Unknown mapping document.");
@@ -187,7 +188,7 @@ Context::transpile(const std::string& source)
     argv[0].setString(string_to_js(this->_cx.get(), source));
     JS::RootedValue rval(this->_cx.get());
 
-    if(!JS::Call(this->_cx.get(), this_obj, "rewrite_anon_fun", argv, &rval)) {
+    if(!JS::Call(this->_cx.get(), this_obj, "rewriteAnonFun", argv, &rval)) {
         JS::RootedValue exc(this->_cx.get());
         if(!JS_GetPendingException(this->_cx.get(), &exc)) {
             throw AtelesInternalError(

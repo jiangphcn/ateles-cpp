@@ -63,7 +63,7 @@ class Worker {
     void exit();
 
     JSFuture set_lib(const std::string& lib);
-    JSFuture add_map_fun(const std::string& source);
+    JSFuture add_map_fun(const std::string& id, const std::string& source);
     JSFuture map_doc(const std::string& doc);
 
   private:

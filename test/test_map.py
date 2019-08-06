@@ -16,12 +16,19 @@ def stub():
     yield tutil.connect(reset=True)
 
 
+def mkfun(id, fun):
+    ret = ateles_pb2.MapFun()
+    ret.id = id
+    ret.fun = fun
+    return ret
+
+
 def test_basic_map_doc(stub):
-    req = ateles_pb2.CreateContextRequest(context_id="basic_map");
+    req = ateles_pb2.CreateContextRequest(context_id="basic_map")
     stub.CreateContext(req)
 
     req = ateles_pb2.AddMapFunsRequest(context_id="basic_map", map_funs=[
-            "function(doc) {emit(doc.value, null);}"
+            mkfun("1", "function(doc) {emit(doc.value, null);}")
         ])
     stub.AddMapFuns(req)
 
@@ -32,18 +39,19 @@ def test_basic_map_doc(stub):
                     map_id="map_id:%d" % i,
                     doc='{"value": %s}' % i
                 )
+
     for idx, resp in enumerate(stub.MapDocs(gen_docs())):
         assert resp.ok
         assert resp.map_id == "map_id:%d" % idx
-        assert json.loads(resp.result) == [[[idx, None]]]
+        assert json.loads(resp.result) == [{'id': "1", 'result': [[idx, None]]}]
 
 
 def test_no_emit(stub):
-    req = ateles_pb2.CreateContextRequest(context_id="no_emit");
+    req = ateles_pb2.CreateContextRequest(context_id="no_emit")
     stub.CreateContext(req)
 
     req = ateles_pb2.AddMapFunsRequest(context_id="no_emit", map_funs=[
-            "function(doc) {return;}"
+            mkfun("1", "function(doc) {return;}")
         ])
     stub.AddMapFuns(req)
 
@@ -54,23 +62,24 @@ def test_no_emit(stub):
                     map_id="stuff:%d" % i,
                     doc='{"value": %s}' % i
                 )
+
     for idx, resp in enumerate(stub.MapDocs(gen_docs())):
         assert resp.ok
         assert resp.map_id == "stuff:%d" % idx
-        assert json.loads(resp.result) == [[]]
+        assert json.loads(resp.result) == [{'id': "1", 'result': []}]
 
 
 def test_multiple_emit(stub):
-    req = ateles_pb2.CreateContextRequest(context_id="multiple_emits");
+    req = ateles_pb2.CreateContextRequest(context_id="multiple_emits")
     stub.CreateContext(req)
 
     req = ateles_pb2.AddMapFunsRequest(context_id="multiple_emits", map_funs=[
-            textwrap.dedent("""\
-            function(doc) {
-                emit(doc.value, null);
-                emit("bar", doc.value);
-            }
-            """)
+            mkfun("1", textwrap.dedent("""\
+                    function(doc) {
+                        emit(doc.value, null);
+                        emit("bar", doc.value);
+                    }
+                    """))
         ])
     stub.AddMapFuns(req)
 
@@ -81,21 +90,22 @@ def test_multiple_emit(stub):
                     map_id="map_id:%d" % i,
                     doc='{"value": %s}' % i
                 )
+
     for idx, resp in enumerate(stub.MapDocs(gen_docs())):
         assert resp.ok
         assert resp.map_id == "map_id:%d" % idx
-        row = [[[idx, None], ["bar", idx]]]
+        row = [{'id': "1", 'result': [[idx, None], ["bar", idx]]}]
         assert json.loads(resp.result) == row
 
 
 def test_multiple_functions(stub):
-    req = ateles_pb2.CreateContextRequest(context_id="multiple_funs");
+    req = ateles_pb2.CreateContextRequest(context_id="multiple_funs")
     stub.CreateContext(req)
 
     req = ateles_pb2.AddMapFunsRequest(context_id="multiple_funs", map_funs=[
-            "function(doc) {emit(doc.value, null);}",
-            "function(doc) {emit(doc.value * 2, true);}",
-            "function(doc) {emit(\"foo\", doc.value);}"
+            mkfun("1", "function(doc) {emit(doc.value, null);}"),
+            mkfun("2", "function(doc) {emit(doc.value * 2, true);}"),
+            mkfun("3", "function(doc) {emit(\"foo\", doc.value);}")
         ])
     stub.AddMapFuns(req)
 
@@ -106,26 +116,31 @@ def test_multiple_functions(stub):
                     map_id="%d" % i,
                     doc='{"value": %s}' % i
                 )
+
     for idx, resp in enumerate(stub.MapDocs(gen_docs())):
         assert resp.ok
         assert resp.map_id == "%d" % idx
-        row = [[[idx, None]], [[idx * 2, True]], [["foo", idx]]]
+        row = [
+            {'id': "1", 'result': [[idx, None]]},
+            {'id': "2", 'result': [[idx * 2, True]]},
+            {'id': "3", 'result': [["foo", idx]]}
+        ]
         assert json.loads(resp.result) == row
 
 
 def test_multiple_functions_mixed_emit(stub):
-    req = ateles_pb2.CreateContextRequest(context_id="mixed_emit");
+    req = ateles_pb2.CreateContextRequest(context_id="mixed_emit")
     stub.CreateContext(req)
 
     req = ateles_pb2.AddMapFunsRequest(context_id="mixed_emit", map_funs=[
-            textwrap.dedent("""\
-            function(doc) {
-                emit(doc.value, null);
-                emit(false, doc.value);
-            }
-            """),
-            "function(doc) {return;}",
-            "function(doc) {emit(true, doc.value)}"
+            mkfun("1", textwrap.dedent("""\
+                    function(doc) {
+                        emit(doc.value, null);
+                        emit(false, doc.value);
+                    }
+                    """)),
+            mkfun("2", "function(doc) {return;}"),
+            mkfun("3", "function(doc) {emit(true, doc.value)}")
         ])
     stub.AddMapFuns(req)
 
@@ -136,102 +151,113 @@ def test_multiple_functions_mixed_emit(stub):
                     map_id="map_id:%d" % i,
                     doc='{"value": %s}' % i
                 )
+
     for idx, resp in enumerate(stub.MapDocs(gen_docs())):
         assert resp.ok
         assert resp.map_id == "map_id:%d" % idx
-        row = [[[idx, None], [False, idx]], [], [[True, idx]]]
+        row = [
+            {'id': "1", 'result': [[idx, None], [False, idx]]},
+            {'id': "2", 'result': []},
+            {'id': "3", 'result': [[True, idx]]}
+        ]
         assert json.loads(resp.result) == row
 
 
 def test_map_throws(stub):
-    req = ateles_pb2.CreateContextRequest(context_id="map_throws");
+    req = ateles_pb2.CreateContextRequest(context_id="map_throws")
     stub.CreateContext(req)
 
-    req = ateles_pb2.AddMapFunsRequest(context_id="no_emit", map_funs=[
-            "function(doc) {throw \"foo\";}"
+    req = ateles_pb2.AddMapFunsRequest(context_id="map_throws", map_funs=[
+            mkfun("1", "function(doc) {throw \"foo\";}")
         ])
     stub.AddMapFuns(req)
 
     def gen_docs():
         for i in range(0, 4):
             yield ateles_pb2.MapDocsRequest(
-                    context_id="no_emit",
+                    context_id="map_throws",
                     map_id="%d" % i,
                     doc='{"value": %s}' % i
                 )
+
     for idx, resp in enumerate(stub.MapDocs(gen_docs())):
-        assert not resp.ok
-        assert resp.map_id == "%d" % grpc.StatusCode.INVALID_ARGUMENT.value[0]
-        assert "Error mapping" in resp.result
+        assert json.loads(resp.result) == [{'id': "1", 'error': 'foo'}]
 
 
 def test_map_throws_error(stub):
-    req = ateles_pb2.CreateContextRequest(context_id="map_throws_error");
+    req = ateles_pb2.CreateContextRequest(context_id="map_throws_error")
     stub.CreateContext(req)
 
     req = ateles_pb2.AddMapFunsRequest(context_id="map_throws_error",
         map_funs=[
-            "function(doc) {do_a_thing();}"
+            mkfun("1", "function(doc) {do_a_thing();}")
         ])
     stub.AddMapFuns(req)
 
     def gen_docs():
         for i in range(0, 4):
             yield ateles_pb2.MapDocsRequest(
-                    context_id="no_emit",
-                    map_id="%d" % i,
+                    context_id="map_throws_error",
+                    map_id="map_id:%d" % i,
                     doc='{"value": %s}' % i
                 )
+
     for idx, resp in enumerate(stub.MapDocs(gen_docs())):
-        assert not resp.ok
-        assert resp.map_id == "%d" % grpc.StatusCode.INVALID_ARGUMENT.value[0]
-        assert "Error mapping" in resp.result
+        assert resp.map_id == "map_id:%d" % idx
+        error = [{
+            'id': "1",
+            'error': 'ReferenceError: do_a_thing is not defined'}
+        ]
+        assert json.loads(resp.result) == error
 
 
 def test_bad_map_fun(stub):
-    req = ateles_pb2.CreateContextRequest(context_id="bad_js");
+    req = ateles_pb2.CreateContextRequest(context_id="bad_js")
     stub.CreateContext(req)
 
     req = ateles_pb2.AddMapFunsRequest(context_id="bad_js", map_funs=[
-        "this is hopefully not valid JavaScript but probably is"
-    ])
+            mkfun("1", "this is hopefully not valid JavaScript but probably is")
+        ])
     try:
         stub.AddMapFuns(req)
         assert False
-    except Exception, e:
+    except Exception as e:
         assert e.code() == grpc.StatusCode.INVALID_ARGUMENT
 
 
-def test_bad_map_fun(stub):
-    req = ateles_pb2.CreateContextRequest(context_id="not_a_fun");
+def test_not_a_fun(stub):
+    req = ateles_pb2.CreateContextRequest(context_id="not_a_fun")
     stub.CreateContext(req)
 
     req = ateles_pb2.AddMapFunsRequest(context_id="not_a_fun", map_funs=[
-        "var foo = 2;"
+            mkfun("1", "var foo = 2;")
     ])
     try:
         stub.AddMapFuns(req)
         assert False
-    except Exception, e:
+    except Exception as e:
         assert e.code() == grpc.StatusCode.INVALID_ARGUMENT
         assert "Invalid function" in e.details()
 
 
 @pytest.mark.slow
 def test_lots_of_map_funs(stub):
-    req = ateles_pb2.CreateContextRequest(context_id="lots_of_funs");
+    req = ateles_pb2.CreateContextRequest(context_id="lots_of_funs")
     stub.CreateContext(req)
 
     long_str = "a" * 4096
-    funs = [
-        "function(doc) {var a = \"%s\"; emit(doc.value, null);}" % long_str
-    ]
-    req = ateles_pb2.AddMapFunsRequest(context_id="lots_of_funs", map_funs=funs)
+    fun = "function(doc) {var a = \"%s\"; emit(doc.value, null);}" % long_str
 
     try:
         for i in range(100000):
+            req = ateles_pb2.AddMapFunsRequest(
+                    context_id="lots_of_funs",
+                    map_funs=[
+                        mkfun("%d" % i, fun)
+                    ]
+                )
             stub.AddMapFuns(req)
-    except Exception, e:
+    except Exception as e:
         assert "out of memory" in e.details()
     else:
         assert False
